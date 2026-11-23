@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spine Shelf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,700;1,500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--serif:'Fraunces',Georgia,serif;--sans:'Instrument Sans',system-ui,sans-serif;--s:1}
+[data-theme=dark]{--bg:#0e1226;--panel:#151a33;--line:#262d52;--ink:#e8eaf6;--mute:#8d94bd;--accent:#e0476f;--accent-ink:#fff;--board:#2a3160;--board2:#1c2145;--field:#0e1226}
+[data-theme=light]{--bg:#f1efe9;--panel:#fbfaf7;--line:#d9d5c8;--ink:#23213a;--mute:#6d6a80;--accent:#b8264f;--accent-ink:#fff;--board:#b99b77;--board2:#8f7352;--field:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);transition:background .25s,color .25s}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header,main{max-width:1200px;margin:0 auto;padding:0 20px}
+header{padding-top:28px}
+h1{font:700 2rem/1.1 var(--serif);margin:0}
+header p{margin:4px 0 16px;color:var(--mute)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.bar .grow{flex:1}
+.btn,.seg button,select,input,textarea{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+.btn:hover,.seg button:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.seg{display:inline-flex}.seg button{border-radius:0;margin-left:-1px}
+.seg button:first-child{border-radius:8px 0 0 8px;margin:0}.seg button:last-child{border-radius:0 8px 8px 0}
+.seg button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));border:1px solid var(--line);background:var(--panel);border-radius:10px;margin-bottom:18px}
+.stats div{padding:12px;text-align:center;border-right:1px solid var(--line)}.stats div:last-child{border:0}
+.stats b{display:block;font:700 1.5rem var(--serif)}.stats span{font-size:.78rem;color:var(--mute)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;padding-bottom:60px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.shelf{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px 0}
+.shelf-head{display:flex;gap:6px;align-items:center}
+.shelf-head select{padding:4px 8px;font-size:.85rem;border-radius:99px}
+.shelf-head .val{flex:1;min-width:0}
+.count{font-size:.8rem;color:var(--mute);min-width:24px;text-align:right}
+.x{border:0;background:none;color:var(--mute);padding:2px 6px}
+.row{display:flex;align-items:flex-end;gap:2px;height:calc(190px*var(--s));overflow-x:auto;padding:8px 4px 0;scrollbar-width:thin}
+.board{height:12px;margin:0 -12px;background:linear-gradient(var(--board),var(--board2));border-radius:0 0 11px 11px}
+.empty{align-self:center;color:var(--mute);font-size:.9rem;padding:0 8px}
+.spine{flex:none;border:0;border-radius:2px 2px 0 0;padding:0;color:#fff;font:600 calc(11px*var(--s))/1 var(--sans);overflow:hidden;box-shadow:inset 2px 0 rgba(255,255,255,.18),inset -2px 0 rgba(0,0,0,.25);transition:transform .15s}
+.spine:hover{transform:translateY(-6px)}
+.spine span{writing-mode:vertical-rl;display:block;padding:8px 0;max-height:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:auto;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.cover{flex:none;width:calc(86px*var(--s));height:calc(130px*var(--s));border:0;border-radius:3px;padding:6px;background-size:cover;background-position:center;color:#fff;font:600 .72rem/1.2 var(--serif);text-align:left;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .15s}
+.cover:hover{transform:translateY(-6px)}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;width:min(520px,94vw);padding:20px}
+dialog::backdrop{background:rgba(5,8,20,.6)}
+dialog h2{font:700 1.3rem var(--serif);margin:0 0 12px}
+form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:grid;gap:3px;font-size:.8rem;color:var(--mute)}
+label.full,.actions{grid-column:1/-1}
+label input,label select,label textarea{width:100%;color:var(--ink);background:var(--field)}
+.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.actions .del{margin-right:auto;color:var(--accent)}
+.note{font-size:.8rem;color:var(--mute)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Spine Shelf</h1>
+  <p>Your library, one spine at a time. Saved in this browser only.</p>
+  <div class="bar" role="toolbar" aria-label="Library controls">
+    <div class="seg" role="group" aria-label="View"><button data-view="spines">Spines</button><button data-view="covers">Covers</button></div>
+    <div class="seg" role="group" aria-label="Size"><button data-size="0.8">S</button><button data-size="1">M</button><button data-size="1.25">L</button></div>
+    <input id="q" type="search" placeholder="Search title or author" aria-label="Search">
+    <span class="grow"></span>
+    <button class="btn" id="addShelf">Add shelf</button>
+    <button class="btn" id="exp">Export</button>
+    <button class="btn" id="imp">Import</button>
+    <button class="btn" id="theme" aria-label="Switch theme"></button>
+    <button class="btn primary" id="add">Add book</button>
+    <input type="file" id="file" accept=".json" hidden>
+  </div>
+  <div class="stats" id="stats"></div>
+</header>
+<main><div class="grid" id="grid"></div></main>
+
+<dialog id="dlg"><h2 id="dt">Add book</h2>
+<form id="f" method="dialog">
+  <label class="full">Title<input name="title" required></label>
+  <label>Author<input name="author"></label>
+  <label>Genre<input name="genre" placeholder="Fantasy"></label>
+  <label>Publisher<input name="publisher"></label>
+  <label>Format<select name="format"><option>Physical</option><option>Ebook</option><option>Audiobook</option></select></label>
+  <label>Status<select name="status"><option>Want to read</option><option>Reading</option><option>Read</option></select></label>
+  <label>Stars (0 to 5)<input name="stars" type="number" min="0" max="5" step="1"></label>
+  <label>Pages<input name="pages" type="number" min="1"></label>
+  <label>Price<input name="price" type="number" min="0" step="0.01"></label>
+  <label>Spice (0 to 5)<input name="spice" type="number" min="0" max="5" step="1"></label>
+  <label>Spine color<input name="color" type="color"></label>
+  <label>Cover URL<input name="cover" type="url"></label>
+  <label class="full">Notes<textarea name="notes" rows="3"></textarea></label>
+  <p class="note full" id="lm"></p>
+  <div class="actions">
+    <button type="button" class="btn del" id="del">Delete</button>
+    <button type="button" class="btn" id="look">Look up details</button>
+    <button type="button" class="btn" id="cancel">Cancel</button>
+    <button class="btn primary" id="save" value="ok">Save book</button>
+  </div>
+</form></dialog>
+
+<script>
+const $=s=>document.querySelector(s), KEY='spine-shelf-v1';
+const FIELDS={genre:'Genre',stars:'Stars',author:'Author',publisher:'Publisher',format:'Format',status:'Status',price:'Price',pages:'Pages',spice:'Spice'};
+const SAMPLE=[];
+let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+S=S||{};S.books=S.books||SAMPLE;S.view=S.view||'spines';S.size=S.size||1;
+S.shelves=S.shelves||['genre','stars','author','format','status','spice'].map(f=>({f,v:'All'}));
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+
+function val(b,f){const n=Number(b[f]);
+  if(f==='stars')return n?'★'.repeat(n):'Unrated';
+  if(f==='spice')return n?'🌶'.repeat(n):'No spice';
+  if(f==='pages')return !n?'Unknown':n<=100?'Up to 100':n<=250?'101 to 250':n<=400?'251 to 400':'Over 400';
+  if(f==='price')return b.price===''||b.price==null?'Unknown':n<10?'Budget':n<=20?'Mid':'Premium';
+  return b[f]||'Unknown'}
+function hue(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h}
+const bg=b=>b.color||`hsl(${hue(b.title)} 45% 38%)`;
+const match=b=>{const q=$('#q').value.trim().toLowerCase();return !q||(b.title+' '+b.author).toLowerCase().includes(q)};
+
+function bookEl(b){const e=document.createElement('button');
+  e.title=b.title+(b.author?' by '+b.author:'');e.onclick=()=>openDlg(b);
+  if(S.view==='covers'){e.className='cover';e.style.background=b.cover?`url("${b.cover.replace(/"/g,'')}") center/cover`:bg(b);if(!b.cover)e.textContent=b.title}
+  else{e.className='spine';const p=Number(b.pages)||250;
+    e.style.cssText=`background:${bg(b)};width:calc(${Math.min(46,Math.max(18,p/13))}px*var(--s));height:calc(${Math.round(100+Math.min(p,700)/6)}px*var(--s))`;
+    const s=document.createElement('span');s.textContent=b.title;e.append(s)}
+  return e}
+
+function render(){
+  document.documentElement.style.setProperty('--s',S.size);
+  document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===S.view));
+  document.querySelectorAll('[data-size]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.size===S.size));
+  const B=S.books,read=B.filter(b=>b.status==='Read'),rated=B.filter(b=>+b.stars);
+  const gc={};B.forEach(b=>gc[b.genre||'Unknown']=(gc[b.genre||'Unknown']||0)+1);
+  const fav=Object.entries(gc).sort((a,b)=>b[1]-a[1])[0];
+  const st=[[B.length,'Books'],[B.length?Math.round(read.length/B.length*100)+'%':'0%','Read'],[B.filter(b=>b.status==='Reading').length,'Reading now'],[B.filter(b=>b.status==='Want to read').length,'Want to read'],[rated.length?(rated.reduce((a,b)=>a+ +b.stars,0)/rated.length).toFixed(1):'–','Average stars'],[fav?fav[0]:'–','Top genre']];
+  $('#stats').replaceChildren(...st.map(([n,l])=>{const d=document.createElement('div');d.innerHTML='<b></b><span></span>';d.firstChild.textContent=n;d.lastChild.textContent=l;return d}));
+  const g=$('#grid');g.replaceChildren();
+  S.shelves.forEach((sh,i)=>{
+    const vals=[...new Set(B.map(b=>val(b,sh.f)))].sort();
+    if(sh.v!=='All'&&!vals.includes(sh.v))sh.v='All';
+    const list=B.filter(b=>(sh.v==='All'||val(b,sh.f)===sh.v)&&match(b));
+    const el=document.createElement('section');el.className='shelf';
+    el.innerHTML='<div class="shelf-head"><select class="fld" aria-label="Group by"></select><select class="val" aria-label="Value"></select><span class="count"></span><button class="x" aria-label="Remove shelf">✕</button></div><div class="row"></div><div class="board"></div>';
+    const fs=el.querySelector('.fld'),vs=el.querySelector('.val');
+    Object.entries(FIELDS).forEach(([k,l])=>fs.add(new Option(l,k,0,k===sh.f)));
+    ['All',...vals].forEach(v=>vs.add(new Option(v,v,0,v===sh.v)));
+    fs.onchange=()=>{sh.f=fs.value;sh.v='All';save();render()};
+    vs.onchange=()=>{sh.v=vs.value;save();render()};
+    el.querySelector('.count').textContent=list.length;
+    el.querySelector('.x').onclick=()=>{S.shelves.splice(i,1);save();render()};
+    const row=el.querySelector('.row');
+    if(list.length)list.forEach(b=>row.append(bookEl(b)));else{const m=document.createElement('p');m.className='empty';m.textContent=B.length?'No books on this shelf.':'Your library is empty. Select Add book to start.';row.append(m)}
+    g.append(el)})}
+
+const dlg=$('#dlg'),f=$('#f');let cur=null;
+function openDlg(b){cur=b;f.reset();$('#dt').textContent=b?'Edit book':'Add book';$('#del').hidden=!b;$('#lm').textContent='';
+  const d=b||{format:'Physical',status:'Want to read',color:'#3a4a7a'};
+  for(const el of f.elements)if(el.name)el.value=d[el.name]??'';
+  if(!d.color)f.color.value='#3a4a7a';dlg.showModal()}
+f.onsubmit=e=>{const o=Object.fromEntries(new FormData(f));
+  if(cur)Object.assign(cur,o);else S.books.push({id:'b'+Date.now(),...o});
+  save();render()};
+$('#cancel').onclick=()=>dlg.close();
+$('#del').onclick=()=>{if(confirm('Delete this book?')){S.books=S.books.filter(x=>x!==cur);save();render();dlg.close()}};
+$('#look').onclick=async()=>{const t=f.title.value.trim(),m=$('#lm');if(!t){m.textContent='Enter a title first.';return}
+  m.textContent='Searching Open Library…';
+  try{const r=await fetch('https://openlibrary.org/search.json?limit=1&q='+encodeURIComponent(t+' '+f.author.value));
+    const d=(await r.json()).docs[0];if(!d){m.textContent='No match found. Fill in the details by hand.';return}
+    if(d.title)f.title.value=d.title;if(d.author_name)f.author.value=d.author_name[0];
+    if(d.number_of_pages_median)f.pages.value=d.number_of_pages_median;
+    if(d.publisher)f.publisher.value=d.publisher[0];if(d.subject&&!f.genre.value)f.genre.value=d.subject[0];
+    if(d.cover_i)f.cover.value=`https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`;
+    m.textContent='Details filled in. Check them, then save.'}
+  catch(e){m.textContent='Lookup failed. Check your connection and try again.'}};
+
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{S.view=b.dataset.view;save();render()});
+document.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{S.size=+b.dataset.size;save();render()});
+$('#q').oninput=render;$('#add').onclick=()=>openDlg(null);
+$('#addShelf').onclick=()=>{S.shelves.push({f:'publisher',v:'All'});save();render()};
+$('#exp').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S.books,null,2)],{type:'application/json'}));a.download='spine-shelf-books.json';a.click()};
+$('#imp').onclick=()=>$('#file').click();
+$('#file').onchange=async e=>{try{const d=JSON.parse(await e.target.files[0].text());if(!Array.isArray(d))throw 0;S.books=d.map((b,i)=>({id:b.id||'i'+i,...b}));save();render()}catch(x){alert('That file is not a Spine Shelf export (a JSON list of books).')}e.target.value=''};
+
+function setTheme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem('spine-theme',t)}catch(e){}$('#theme').textContent=t==='dark'?'Light theme':'Dark theme'}
+let t0;try{t0=localStorage.getItem('spine-theme')}catch(e){}
+setTheme(t0||(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'));
+$('#theme').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+render();
+</script>
+</body>
+</html>
